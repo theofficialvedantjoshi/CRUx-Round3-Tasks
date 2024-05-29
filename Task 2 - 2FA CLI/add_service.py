@@ -35,29 +35,31 @@ def set_seed():
     return service, username, seed
 
 
-def set_editor():
-    editor = input("Enter your preferred text editor: ")
+def set_editor(editor):
     os.environ["EDITOR"] = editor
     print("EDITOR set successfully")
 
 
 def init_database():
-    conn = sqlite3.connect("Task 2 - 2FA CLI\data\\totp.db")
-    curser = conn.cursor()
-    curser.execute(
-        """
-    CREATE TABLE IF NOT EXISTS services(
-        service TEXT PRIMARY KEY,
-        username TEXT,
-        seed TEXT
-    )
-        """
-    )
-    conn.commit()
-    conn.close()
+    if os.path.exists("Task 2 - 2FA CLI\data\\totp.db"):
+        pass
+    else:
+        conn = sqlite3.connect("Task 2 - 2FA CLI\data\\totp.db")
+        curser = conn.cursor()
+        curser.execute(
+            """
+        CREATE TABLE IF NOT EXISTS services(
+            service TEXT PRIMARY KEY,
+            username TEXT,
+            seed TEXT
+        )
+            """
+        )
+        conn.commit()
+        conn.close()
 
 
-def add_service():
+def set_service():
     service, username, seed = set_seed()
     conn = sqlite3.connect("Task 2 - 2FA CLI\data\\totp.db")
     curser = conn.cursor()
