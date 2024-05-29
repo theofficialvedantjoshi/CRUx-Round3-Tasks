@@ -16,6 +16,7 @@ def set_seed():
     ) as tf:
         tf.write("ENTER TOTP SEED BELOW\n")
         tf.write("Service:[]\n")
+        tf.write("Username:[]\n")
         tf.write("Seed:[]")
         tf.flush()
         subprocess.call(
@@ -28,9 +29,10 @@ def set_seed():
         # print(tf.readlines())
         lines = tf.readlines()
         service = lines[1].split(":")[1].strip("\n").strip("[").strip("]")
-        seed = lines[2].split(":")[1].strip("[").strip("]")
+        username = lines[2].split(":")[1].strip("\n").strip("[").strip("]")
+        seed = lines[3].split(":")[1].strip("[").strip("]")
     os.remove(tf.name)
-    return service, seed
+    return service, username, seed
 
 
 def set_editor():
@@ -45,8 +47,9 @@ def init_database():
     curser.execute(
         """
     CREATE TABLE IF NOT EXISTS services(
-        seed TEXT PRIMARY KEY,
-        service TEXT NOT NULL
+        service TEXT PRIMARY KEY,
+        username TEXT,
+        seed TEXT
     )
         """
     )
@@ -55,14 +58,14 @@ def init_database():
 
 
 def add_service():
-    service, seed = set_seed()
+    service, username, seed = set_seed()
     conn = sqlite3.connect("Task 2 - 2FA CLI\data\\totp.db")
     curser = conn.cursor()
     curser.execute(
         """
-    INSERT INTO services(seed, service) VALUES(?, ?)
+    INSERT INTO services(service, username, seed) VALUES(?, ?, ?)
     """,
-        (seed, service),
+        (service, username, seed),
     )
     conn.commit()
     conn.close()
