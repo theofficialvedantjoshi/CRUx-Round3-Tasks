@@ -15,9 +15,7 @@ def encrypt_db():
         file.write(encrypted_data)
 
 
-def decrypt_db():
-    with open("Task 2 - 2FA CLI\\temp\key.key", "rb") as key_file:
-        key = key_file.read()
+def decrypt_db(key):
     fernet = Fernet(key)
     with open("Task 2 - 2FA CLI\data\\totp.db", "rb") as file:
         encrypted_data = file.read()

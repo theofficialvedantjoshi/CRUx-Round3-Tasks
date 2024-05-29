@@ -59,9 +59,9 @@ def init_database():
         conn.close()
 
 
-def set_service():
+def set_service(key):
     service, username, seed = set_seed()
-    decrypt_db()
+    decrypt_db(key)
     conn = sqlite3.connect("Task 2 - 2FA CLI\data\\totp.db")
     curser = conn.cursor()
     curser.execute(

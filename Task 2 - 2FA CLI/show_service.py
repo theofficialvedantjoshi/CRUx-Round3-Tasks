@@ -5,8 +5,8 @@ import datetime
 from qrcode import QRCode
 
 
-def fetch_seed(service):
-    decrypt_db()
+def fetch_seed(service, key):
+    decrypt_db(key)
     conn = sqlite3.connect("Task 2 - 2FA CLI\data\\totp.db")
     curser = conn.cursor()
     curser.execute(
