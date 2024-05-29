@@ -2,6 +2,7 @@ import pyotp
 from encryption import decrypt_db, encrypt_db
 import sqlite3
 import datetime
+from qrcode import QRCode
 
 
 def fetch_seed(service):
@@ -26,3 +27,10 @@ def show_otp(seed):
         totp.now(),
         totp.interval - datetime.datetime.now().timestamp() % totp.interval,
     )
+
+
+def show_qr(service, seed):
+    totp = pyotp.TOTP(seed)
+    qr = QRCode()
+    qr.add_data(totp.provisioning_uri(service))
+    qr.print_ascii(invert=True)

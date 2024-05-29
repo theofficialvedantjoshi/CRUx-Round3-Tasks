@@ -13,17 +13,14 @@ def encrypt_db():
     encrypted_data = fernet.encrypt(file_data)
     with open("Task 2 - 2FA CLI\data\\totp.db", "wb") as file:
         file.write(encrypted_data)
-    print("Database encrypted successfully")
 
 
 def decrypt_db():
     with open("Task 2 - 2FA CLI\\temp\key.key", "rb") as key_file:
         key = key_file.read()
-    print(key)
     fernet = Fernet(key)
     with open("Task 2 - 2FA CLI\data\\totp.db", "rb") as file:
         encrypted_data = file.read()
     decrypted_data = fernet.decrypt(encrypted_data)
     with open("Task 2 - 2FA CLI\data\\totp.db", "wb") as file:
         file.write(decrypted_data)
-    print("Database decrypted successfully")
