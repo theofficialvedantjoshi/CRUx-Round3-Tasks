@@ -1,2 +1,4 @@
 .env
 __pycache__/
+totp.db
+key.key
