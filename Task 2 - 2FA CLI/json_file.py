@@ -3,8 +3,6 @@ import json
 from encryption import decrypt_db, encrypt_db
 import pyminizip
 import os
-from tkinter import filedialog
-import tkinter as tk
 
 
 def export_db(key, password):
@@ -20,7 +18,7 @@ def export_db(key, password):
     conn.close()
     for i in data:
         with open(f"Task 2 - 2FA CLI\data\\{i[0]}-{i[1]}.json", "w") as f:
-            json.dump({"service": i[0], "ssername": i[1], "seed": i[2]}, f)
+            json.dump({"service": i[0], "username": i[1], "seed": i[2]}, f)
 
     encrypt_db()
     json_files = [
@@ -35,10 +33,7 @@ def export_db(key, password):
         os.remove(file)
 
 
-def import_db_json(key):
-    root = tk.Tk()
-    root.withdraw()
-    file_path = filedialog.askopenfilename()
+def import_db_json(key, file_path):
     with open(file_path, "rb") as f:
         data = f.read()
     data = json.loads(data)
@@ -56,10 +51,7 @@ INSERT INTO services(service, username, seed) VALUES(?, ?, ?)
     encrypt_db()
 
 
-def import_db_zip(key, password):
-    root = tk.Tk()
-    root.withdraw()
-    file_path = filedialog.askopenfilename()
+def import_db_zip(key, password, file_path):
     pyminizip.uncompress(file_path, password, "Task 2 - 2FA CLI\data", 0)
     json_files = [
         "Task 2 - 2FA CLI\data\\" + f

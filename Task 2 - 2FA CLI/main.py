@@ -167,7 +167,8 @@ def import_json():
     click.clear()
     click.echo(click.style(logo, fg="cyan") + "\n")
     key = getpass("Enter your Database Encryption Key: ")
-    json_file.import_db_json(key)
+    file_path = click.prompt("Enter the path to the json file\n", type=str)
+    json_file.import_db_json(key, file_path)
     click.echo(click.style("Service added successfully.", fg="green"))
 
 
@@ -178,8 +179,21 @@ def import_zip():
     click.echo(click.style(logo, fg="cyan") + "\n")
     key = getpass("Enter your Database Encryption Key: ")
     password = getpass("Enter the password for the zip file: ")
-    json_file.import_db_zip(key, password)
+    file_path = click.prompt("Enter the path to the zip file\n", type=str)
+    json_file.import_db_zip(key, password, file_path)
     click.echo(click.style("Services added successfully.", fg="green"))
+
+
+@click.command()
+def remove():
+    """Remove a service."""
+    click.clear()
+    click.echo(click.style(logo, fg="cyan") + "\n")
+    service = click.prompt("Enter the service\n", type=str)
+    username = click.prompt("Enter the username\n", type=str)
+    key = getpass("Enter your Database Encryption Key: ")
+    remove_service.remove_service(service, username, key)
+    click.echo(click.style("Service removed successfully.", fg="green"))
 
 
 modify.add_command(edit_service, "edit_service")
@@ -196,6 +210,7 @@ main.add_command(modify, "modify")
 main.add_command(add, "add")
 main.add_command(show, "show")
 main.add_command(files, "files")
+main.add_command(remove, "remove")
 
 if __name__ == "__main__":
     main()
