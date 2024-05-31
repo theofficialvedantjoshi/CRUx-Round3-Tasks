@@ -49,14 +49,15 @@ def init_database():
         curser.execute(
             """
         CREATE TABLE IF NOT EXISTS services(
-            service TEXT PRIMARY KEY,
+            service TEXT,
             username TEXT,
-            seed TEXT
+            seed TEXT PRIMARY KEY
         )
             """
         )
         conn.commit()
         conn.close()
+        encrypt_db()
 
 
 def set_service(key):
@@ -73,4 +74,3 @@ def set_service(key):
     conn.commit()
     conn.close()
     encrypt_db()
-    print("Service added successfully")
