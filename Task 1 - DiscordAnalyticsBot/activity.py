@@ -81,3 +81,138 @@ def leave_voice(user, last_left, total_time):
                 "total_time": total_time,
             }
         )
+
+
+def get_channels(server, name):
+    db = firestore.client()
+    channels = (
+        db.collection("channels")
+        .where("server", "==", server)
+        .where("name", "==", name)
+        .get()
+    )
+    return channels
+
+
+def add_channels(server, name, type, messages, total_voice_time, active_users):
+    db = firestore.client()
+    channel = {
+        "server": server,
+        "name": name,
+        "type": type,
+        "total_messages": messages,
+        "total_voice_time": total_voice_time,
+        "active_users": active_users,
+    }
+    db.collection("channels").add(channel)
+
+
+def update_channels(server, name):
+    db = firestore.client()
+    channel = get_channels(server, name)
+    users = []
+    active_users = []
+    for doc in channel:
+        if doc.to_dict()["type"] == "text":
+            messages = db.collection("messages").get()
+            total_messages = 0
+            for message in messages:
+                users.append(message.to_dict()["author"])
+                if message.to_dict()["channel"] == name:
+                    total_messages += 1
+            for user in users:
+                if user not in [i["username"] for i in active_users]:
+                    active_users.append({"username": user, "count": users.count(user)})
+            doc_ref = db.collection("channels").document(doc.id)
+            doc_ref.update(
+                {
+                    "total_messages": total_messages,
+                    "active_users": active_users,
+                }
+            )
+            print("updated")
+        else:
+            voice = db.collection("voice").get()
+            total_voice_time = 0
+            for user in voice:
+                if user.to_dict()["channel"] == name:
+                    total_voice_time += user.to_dict()["total_time"]
+            for user in voice:
+                if user.to_dict()["channel"] == name:
+                    if user.to_dict()["username"] not in [
+                        i["username"] for i in active_users
+                    ]:
+                        active_users.append(
+                            {
+                                "username": user.to_dict()["username"],
+                                "total_time": user.to_dict()["total_time"],
+                            }
+                        )
+            doc_ref = db.collection("channels").document(doc.id)
+            doc_ref.update(
+                {
+                    "total_voice_time": total_voice_time,
+                    "active_users": active_users,
+                }
+            )
+            print("updated")
+    # if channel[0].to_dict()["type"][0] == "text":
+    #     messages = db.collection("messages").get()
+    #     total_messages = 0
+    #     for message in messages:
+    #         users.append(message.to_dict()["author"])
+    #         if message.to_dict()["channel"] == name:
+    #             total_messages += 1
+    #     for user in users:
+    #         if user not in active_users:
+    #             active_users.append([user, users.count(user)])
+    #     channel[0].reference.update(
+    #         {
+    #             "total_messages": total_messages,
+    #             "active_users": active_users,
+    #         }
+    #     )
+    # else:
+    #     voice = db.collection("voice").get()
+    #     total_voice_time = 0
+    #     for user in voice:
+    #         if user.to_dict()["channel"] == name:
+    #             total_voice_time += user.to_dict()["total_time"]
+    #     for user in voice:
+    #         if user.to_dict()["channel"] == name:
+    #             active_users.append(
+    #                 [user.to_dict()["username"], user.to_dict()["total_time"]]
+    #             )
+    #     channel[0].reference.update(
+    #         {
+    #             "total_voice_time": total_voice_time,
+    #             "active_users": active_users,
+    #         }
+    #     )
+
+
+# Deletions
+def delete_channel(server, name):
+    db = firestore.client()
+    channels = (
+        db.collection("channels")
+        .where("server", "==", server)
+        .where("name", "==", name)
+        .get()
+    )
+    for channel in channels:
+        db.collection("channels").document(channel.id).delete()
+
+
+def delete_message(server, channel, content, author):
+    db = firestore.client()
+    messages = (
+        db.collection("messages")
+        .where("server", "==", server)
+        .where("channel", "==", channel)
+        .where("content", "==", content)
+        .where("author", "==", author)
+        .get()
+    )
+    for message in messages:
+        db.collection("messages").document(message.id).delete()
