@@ -1,3 +1,4 @@
+import click.testing
 import add_service, modify_service, remove_service, show_service, json_file
 import pyotp
 import time
@@ -48,10 +49,6 @@ def set_service():
     key = click.prompt("Enter your Database Encryption Key", type=str, hide_input=True)
     add_service.set_service(key)
     click.echo(click.style("Service added successfully.", fg="green"))
-
-
-add.add_command(set_editor, "set_editor")
-add.add_command(set_service, "set_service")
 
 
 @click.group(help="Commands for displaying TOTP and QR code.")
@@ -195,6 +192,9 @@ def remove():
     remove_service.remove_service(service, username, key)
     click.echo(click.style("Service removed successfully.", fg="green"))
 
+
+add.add_command(set_editor, "set_editor")
+add.add_command(set_service, "add_service")
 
 modify.add_command(edit_service, "edit_service")
 modify.add_command(edit_username, "edit_username")
