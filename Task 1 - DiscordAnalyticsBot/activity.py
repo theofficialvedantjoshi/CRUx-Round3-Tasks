@@ -33,3 +33,51 @@ def messages(server, channel, content, author, timestamp):
         "sentiment": sentiment,
     }
     db.collection("messages").add(message)
+
+
+def get_voice(server, channel, username):
+    db = firestore.client()
+    user = (
+        db.collection("voice")
+        .where("server", "==", server)
+        .where("channel", "==", channel)
+        .where("username", "==", username)
+        .get()
+    )
+    return user
+
+
+def add_voice(server, channel, username, last_joined, last_left, total_time):
+    db = firestore.client()
+    voice = {
+        "server": server,
+        "channel": channel,
+        "username": username,
+        "last_joined": last_joined,
+        "last_left": last_left,
+        "total_time": total_time,
+    }
+    db.collection("voice").add(voice)
+
+
+def join_voice(user, last_joined):
+    db = firestore.client()
+    for doc in user:
+        doc_ref = db.collection("voice").document(doc.id)
+        doc_ref.update(
+            {
+                "last_joined": last_joined,
+            }
+        )
+
+
+def leave_voice(user, last_left, total_time):
+    db = firestore.client()
+    for doc in user:
+        doc_ref = db.collection("voice").document(doc.id)
+        doc_ref.update(
+            {
+                "last_left": last_left,
+                "total_time": total_time,
+            }
+        )

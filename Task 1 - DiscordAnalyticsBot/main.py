@@ -2,8 +2,9 @@ import os
 from dotenv import load_dotenv
 from discord import Intents, Client, Message
 from datetime import datetime
-from activity import messages
+from activity import messages, get_voice, add_voice, join_voice, leave_voice
 from response import get_response
+from pytz import timezone
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -58,11 +59,29 @@ async def on_message(message: Message):
 @client.event
 async def on_voice_state_update(member, before, after):
     if before.channel is None and after.channel is not None:
-        time = datetime.now()
+        time = datetime.now(timezone("Asia/Kolkata"))
         print(f"{member.name} joined {after.channel.name} at {time}")
+        user = get_voice(member.guild.name, after.channel.name, member.name)
+        if user:
+            join_voice(user, time)
+        else:
+            add_voice(
+                server=member.guild.name,
+                channel=after.channel.name,
+                username=member.name,
+                last_joined=time,
+                last_left=None,
+                total_time=0,
+            )
+
     elif before.channel is not None and after.channel is None:
-        time = datetime.now()
+        time = datetime.now(timezone("Asia/Kolkata"))
         print(f"{member.name} left {before.channel.name} at {time}")
+        user = get_voice(member.guild.name, before.channel.name, member.name)
+        total_time = (time - user[0].to_dict()["last_joined"]).total_seconds() + user[
+            0
+        ].to_dict()["total_time"]
+        leave_voice(user, time, total_time)
 
 
 def main() -> None:
