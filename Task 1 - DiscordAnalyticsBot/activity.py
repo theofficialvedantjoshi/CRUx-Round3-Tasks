@@ -1,4 +1,3 @@
-from pymongo import MongoClient
 from datetime import datetime
 from dotenv import load_dotenv
 import os
@@ -18,9 +17,9 @@ firebase_admin.initialize_app(cred)
 def messages(server, channel, content, author, timestamp):
     db = firestore.client()
     doc = nlp.polarity_scores(content)
-    if doc["compound"] > 0.05:
+    if doc["compound"] > 0.005:
         sentiment = "positive"
-    elif doc["compound"] < -0.05:
+    elif doc["compound"] < -0.005:
         sentiment = "negative"
     else:
         sentiment = "neutral"
