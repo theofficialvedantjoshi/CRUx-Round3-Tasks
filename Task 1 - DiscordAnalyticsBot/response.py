@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 import io
 import pandas as pd
 from datetime import datetime
+from wordcloud import WordCloud, STOPWORDS
 
 commands = [
     "!overview",
@@ -254,4 +255,35 @@ def channel_stats(server, name):
             description=f"Total voice time: {total_voice_time}\n"
             f"Active users: {', '.join([user['username'] for user in active_users])}",
         )
-        return (embed,)
+        return embed, None
+
+
+def word_cloud(server, channel):
+    db = firestore.client()
+    messages = (
+        db.collection("messages")
+        .where("server", "==", server)
+        .where("channel", "==", channel)
+        .get()
+    )
+    text = ""
+    for message in messages:
+        message = message.to_dict()
+        text += message["content"] + " "
+    stopwords = set(STOPWORDS)
+    wordcloud = WordCloud(
+        width=800,
+        height=800,
+        background_color="white",
+        stopwords=stopwords,
+        min_font_size=10,
+    ).generate(text)
+    plt.figure(figsize=(6, 6), facecolor=None)
+    plt.imshow(wordcloud)
+    plt.axis("off")
+    plt.tight_layout(pad=0)
+    buff = io.BytesIO()
+    plt.savefig(buff, format="png")
+    buff.seek(0)
+    image = discord.File(buff, filename="wordcloud.png")
+    return image
