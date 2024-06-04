@@ -21,6 +21,7 @@ from response import (
     channel_stats,
     word_cloud,
     sentiment_analysis,
+    generate_heatmap,
 )
 from pytz import timezone
 
@@ -66,6 +67,10 @@ async def send_message(message: Message, user_message: str) -> None:
             )
             await message.channel.send(file=image1)
             await message.channel.send(file=image2)
+        if user_message.startswith("!heatmap"):
+            tag = user_message.split(" ")[1]
+            image = generate_heatmap(message.guild.name, tag)
+            await message.channel.send(file=image)
         else:
             response = get_response(user_message)
             await message.channel.send(response)

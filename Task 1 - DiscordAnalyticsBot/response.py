@@ -14,7 +14,7 @@ commands = [
     "user",
     "channel",
     "top",
-    "heat",
+    "heatmap",
     "trends",
     "cloud",
     "sentiment",
@@ -59,10 +59,11 @@ def get_help(message: str, command: str) -> str:
             "Top command: `!top`\n"
             "List the top 10 users ranked by the number of messages sent and time spent in voice channels."
         )
-    elif command == "heat":
+    elif command == "heatmap":
         return (
-            "Heat command: `!heat`\n"
+            "Heatmap command: `!heatmap server/<channel>`\n"
             "Generate a heatmap of message activity over the course of a week"
+            " for the entire server or a specific channel."
         )
     elif command == "trends":
         return (
@@ -408,3 +409,33 @@ def sentiment_analysis(server, channel):
     buff.seek(0)
     image2 = discord.File(buff, filename="sentiment_score.png")
     return image1, image2
+
+
+def generate_heatmap(server, tag):
+    db = firestore.client()
+    if tag == "server":
+        messages = db.collection("messages").where("server", "==", server).get()
+    else:
+        messages = (
+            db.collection("messages")
+            .where("server", "==", server)
+            .where("channel", "==", tag)
+            .get()
+        )
+    dates = []
+    hours = []
+    for message in messages:
+        message = message.to_dict()
+        dates.append(message["timestamp"].date())
+        hours.append(message["timestamp"].hour)
+    df = pd.DataFrame({"date": dates, "hour": hours})
+    df["date"] = df["date"].apply(lambda x: x.strftime(r"%Y-%m-%d"))
+    sns.heatmap(df.groupby(["date", "hour"]).size().unstack(), cmap="coolwarm")
+    plt.title("Message Heatmap")
+    plt.xlabel("Hour")
+    plt.ylabel("Date")
+    buff = io.BytesIO()
+    plt.savefig(buff, format="png")
+    buff.seek(0)
+    image = discord.File(buff, filename="heatmap.png")
+    return image
