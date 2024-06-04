@@ -13,7 +13,14 @@ from activity import (
     update_channels,
     delete_message,
 )
-from response import get_response, overview, user, channel_stats, word_cloud
+from response import (
+    get_response,
+    overview,
+    user,
+    channel_stats,
+    word_cloud,
+    sentiment_analysis,
+)
 from pytz import timezone
 
 load_dotenv()
@@ -49,6 +56,9 @@ async def send_message(message: Message, user_message: str) -> None:
                 await message.channel.send("Channel not found")
         if user_message == "!cloud":
             response = word_cloud(message.guild.name, message.channel.name)
+            await message.channel.send(file=response)
+        if user_message == "!sentiment":
+            response = sentiment_analysis(message.guild.name, message.channel.name)
             await message.channel.send(file=response)
         else:
             response = get_response(user_message)

@@ -116,7 +116,7 @@ def overview(server: str):
         color=discord.Color.blue(),
         title="Server Overview",
         description=f"Total messages sent: {total_messages}\n"
-        f"Total voice time: {total_voice_time}\n"
+        f"Total voice time: {total_voice_time}s\n"
         f"Average messages per day: {avg_messages}\n"
         f"Most active user in text channels: {active_user_text}\n"
         f"Most active user in voice channels: {active_user_voice}",
@@ -177,7 +177,7 @@ def user(server: str, username: str):
         title=f"{username} Stats",
         description=f"Total messages sent: {total_messages}\n"
         f"Average messages per day: {messagesperday}\n"
-        f"Total voice time: {total_voice_time}\n"
+        f"Total voice time: {total_voice_time}s\n"
         f"Most active channel: {most_active_channel[0]}",
     )
     embed.set_image(url="attachment://plot.png")
@@ -252,7 +252,7 @@ def channel_stats(server, name):
         embed = discord.Embed(
             color=discord.Color.blue(),
             title=f"{name} Stats",
-            description=f"Total voice time: {total_voice_time}\n"
+            description=f"Total voice time: {total_voice_time}s\n"
             f"Active users: {', '.join([user['username'] for user in active_users])}",
         )
         return embed, None
@@ -286,4 +286,31 @@ def word_cloud(server, channel):
     plt.savefig(buff, format="png")
     buff.seek(0)
     image = discord.File(buff, filename="wordcloud.png")
+    return image
+
+
+def sentiment_analysis(server, channel):
+    db = firestore.client()
+    messages = (
+        db.collection("messages")
+        .where("server", "==", server)
+        .where("channel", "==", channel)
+        .get()
+    )
+    sentiments = {"positive": 0, "negative": 0, "neutral": 0}
+    for message in messages:
+        message = message.to_dict()
+        sentiments[message["sentiment"]] += 1
+
+    # pie chart
+    labels = sentiments.keys()
+    sizes = sentiments.values()
+    fig1, ax1 = plt.subplots()
+    ax1.pie(sizes, labels=labels, autopct="%1.1f%%", shadow=True, startangle=90)
+    ax1.title.set_text("Sentiment Analysis of all messages")
+    ax1.axis("equal")
+    buff = io.BytesIO()
+    plt.savefig(buff, format="png")
+    buff.seek(0)
+    image = discord.File(buff, filename="sentiment.png")
     return image
