@@ -31,6 +31,7 @@ def messages(server, channel, content, author, timestamp):
         "author": author,
         "timestamp": timestamp,
         "sentiment": sentiment,
+        "sentiment_score": doc["compound"],
     }
     db.collection("messages").add(message)
 
