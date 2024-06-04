@@ -13,7 +13,7 @@ from activity import (
     update_channels,
     delete_message,
 )
-from response import get_response
+from response import get_response, overview, user
 from pytz import timezone
 
 load_dotenv()
@@ -30,8 +30,16 @@ async def send_message(message: Message, user_message: str) -> None:
         print("No message to send")
         return
     try:
-        response = get_response(user_message)
-        await message.channel.send(response)
+        if user_message == "!overview":
+            response = overview(message.guild.name)
+            await message.channel.send(embed=response)
+        if user_message == "!user":
+            response, image = user(message.guild.name, message.author.name)
+            await message.channel.send(embed=response)
+            await message.channel.send(file=image)
+        else:
+            response = get_response(user_message)
+            await message.channel.send(response)
     except Exception as e:
         print(f"Error: {e}")
 
