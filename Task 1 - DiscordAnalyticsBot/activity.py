@@ -156,39 +156,6 @@ def update_channels(server, name):
                 }
             )
             print("updated")
-    # if channel[0].to_dict()["type"][0] == "text":
-    #     messages = db.collection("messages").get()
-    #     total_messages = 0
-    #     for message in messages:
-    #         users.append(message.to_dict()["author"])
-    #         if message.to_dict()["channel"] == name:
-    #             total_messages += 1
-    #     for user in users:
-    #         if user not in active_users:
-    #             active_users.append([user, users.count(user)])
-    #     channel[0].reference.update(
-    #         {
-    #             "total_messages": total_messages,
-    #             "active_users": active_users,
-    #         }
-    #     )
-    # else:
-    #     voice = db.collection("voice").get()
-    #     total_voice_time = 0
-    #     for user in voice:
-    #         if user.to_dict()["channel"] == name:
-    #             total_voice_time += user.to_dict()["total_time"]
-    #     for user in voice:
-    #         if user.to_dict()["channel"] == name:
-    #             active_users.append(
-    #                 [user.to_dict()["username"], user.to_dict()["total_time"]]
-    #             )
-    #     channel[0].reference.update(
-    #         {
-    #             "total_voice_time": total_voice_time,
-    #             "active_users": active_users,
-    #         }
-    #     )
 
 
 # Deletions

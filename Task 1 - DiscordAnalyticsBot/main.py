@@ -13,7 +13,7 @@ from activity import (
     update_channels,
     delete_message,
 )
-from response import get_response, overview, user
+from response import get_response, overview, user, channel_stats
 from pytz import timezone
 
 load_dotenv()
@@ -37,6 +37,16 @@ async def send_message(message: Message, user_message: str) -> None:
             response, image = user(message.guild.name, message.author.name)
             await message.channel.send(embed=response)
             await message.channel.send(file=image)
+        if user_message.startswith("!channel"):
+            name = user_message.split(" ")[1]
+            try:
+                response, image = channel_stats(message.guild.name, name)
+                await message.channel.send(embed=response)
+                if image:
+                    await message.channel.send(file=image)
+            except Exception as e:
+                print(f"Error: {e}")
+                await message.channel.send("Channel not found")
         else:
             response = get_response(user_message)
             await message.channel.send(response)

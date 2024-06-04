@@ -5,6 +5,8 @@ import discord
 import seaborn as sns
 from matplotlib import pyplot as plt
 import io
+import pandas as pd
+from datetime import datetime
 
 commands = [
     "!overview",
@@ -103,11 +105,18 @@ def overview(server: str):
                 active_users = channel["active_users"]
                 active_user = max(active_users, key=lambda x: x["total_time"])
                 active_user_voice = active_user["username"]
+    messages = db.collection("messages").where("server", "==", server).get()
+    timeseries = []
+    for message in messages:
+        message = message.to_dict()
+        timeseries.append(message["timestamp"])
+    avg_messages = total_messages / len(list(set([time.date() for time in timeseries])))
     embed = discord.Embed(
         color=discord.Color.blue(),
         title="Server Overview",
         description=f"Total messages sent: {total_messages}\n"
         f"Total voice time: {total_voice_time}\n"
+        f"Average messages per day: {avg_messages}\n"
         f"Most active user in text channels: {active_user_text}\n"
         f"Most active user in voice channels: {active_user_voice}",
     )
@@ -141,6 +150,7 @@ def user(server: str, username: str):
     for time in timeseries:
         if time not in [*message_data]:
             message_data[time] = timeseries.count(time)
+    messagesperday = sum([*message_data.values()]) / len([*message_data])
     plot = sns.barplot(x=[*message_data], y=[*message_data.values()])
     plt.xlabel("Date")
     plt.ylabel("Messages")
@@ -165,8 +175,83 @@ def user(server: str, username: str):
         color=discord.Color.blue(),
         title=f"{username} Stats",
         description=f"Total messages sent: {total_messages}\n"
+        f"Average messages per day: {messagesperday}\n"
         f"Total voice time: {total_voice_time}\n"
         f"Most active channel: {most_active_channel[0]}",
     )
     embed.set_image(url="attachment://plot.png")
     return embed, image
+
+
+def channel_stats(server, name):
+    db = firestore.client()
+    channels = (
+        db.collection("channels")
+        .where("server", "==", server)
+        .where("name", "==", name)
+        .get()
+    )
+    total_messages = 0
+    total_voice_time = 0
+    active_users = []
+    for channel in channels:
+        channel = channel.to_dict()
+        total_messages += channel["total_messages"]
+        total_voice_time += channel["total_voice_time"]
+        active_users = channel["active_users"]
+    if channels[0].to_dict()["type"] == "text":
+        messages = (
+            db.collection("messages")
+            .where("server", "==", server)
+            .where("channel", "==", name)
+            .get()
+        )
+        timeseries = []
+        for message in messages:
+            message = message.to_dict()
+            timeseries.append(message["timestamp"])
+        avg_messages = total_messages / len(
+            list(set([time.date() for time in timeseries]))
+        )
+        message_data = {}
+        timeseries = [time.date() for time in timeseries]
+        for time in timeseries:
+            if time not in [*message_data]:
+                # message_data[datetime.] = timeseries.count(time)
+                message_data[time] = timeseries.count(time)
+        plot = sns.scatterplot(x=[*message_data], y=[*message_data.values()])
+        plt.xlabel("Date")
+        plt.ylabel("Messages")
+        plt.title(f"Messages sent in {name}")
+        plt.xticks(rotation=45)
+        figure = plot.get_figure()
+        buffer = io.BytesIO()
+        figure.savefig(buffer, format="png")
+        buffer.seek(0)
+        image = discord.File(buffer, filename="plot.png")
+        embed = discord.Embed(
+            color=discord.Color.blue(),
+            title=f"{name} Stats",
+            description=f"Total messages sent: {total_messages}\n"
+            f"Average messages per day: {avg_messages}\n"
+            f"Active users: {', '.join([user['username'] for user in active_users])}",
+        )
+        return embed, image
+    else:
+        voice = (
+            db.collection("voice")
+            .where("server", "==", server)
+            .where("channel", "==", name)
+            .get()
+        )
+        total_voice_time = 0
+        for v in voice:
+            v = v.to_dict()
+            total_voice_time += v["total_time"]
+        embed = discord.Embed(
+            color=discord.Color.blue(),
+            title=f"{name} Stats",
+            description=f"Total voice time: {total_voice_time}\n"
+            f"Active users: {', '.join([user['username'] for user in active_users])}",
+        )
+        return (embed,)
