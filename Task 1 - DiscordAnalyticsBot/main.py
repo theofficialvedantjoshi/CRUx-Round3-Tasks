@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from discord import Intents, Client, Message, Member
+import discord
 from datetime import datetime
 from activity import (
     messages,
@@ -40,8 +41,9 @@ async def send_message(message: Message, user_message: str) -> None:
         if user_message == "!overview":
             response = overview(message.guild.name)
             await message.channel.send(embed=response)
-        if user_message == "!user":
-            response, image = user(message.guild.name, message.author.name)
+        if user_message.startswith("!user"):
+            timeframe = user_message.split(" ")[1]
+            response, image = user(message.guild.name, message.author.name, timeframe)
             await message.channel.send(embed=response)
             await message.channel.send(file=image)
         if user_message.startswith("!channel"):
@@ -54,12 +56,16 @@ async def send_message(message: Message, user_message: str) -> None:
             except Exception as e:
                 print(f"Error: {e}")
                 await message.channel.send("Channel not found")
-        if user_message == "!cloud":
-            response = word_cloud(message.guild.name, message.channel.name)
+        if user_message.startswith("!cloud"):
+            tag = user_message.split(" ")[1]
+            response = word_cloud(message.guild.name, tag)
             await message.channel.send(file=response)
         if user_message == "!sentiment":
-            response = sentiment_analysis(message.guild.name, message.channel.name)
-            await message.channel.send(file=response)
+            image1, image2 = sentiment_analysis(
+                message.guild.name, message.channel.name
+            )
+            await message.channel.send(file=image1)
+            await message.channel.send(file=image2)
         else:
             response = get_response(user_message)
             await message.channel.send(response)
