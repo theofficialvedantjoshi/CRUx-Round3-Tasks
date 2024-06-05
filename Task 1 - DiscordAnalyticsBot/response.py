@@ -16,13 +16,14 @@ from pytz import timezone
 # firebase_admin.initialize_app(cred)
 commands = [
     "overview",
-    "user",
-    "channel",
-    "top",
-    "versus" "heatmap",
+    "user <hourly/daily/weekly>",
+    "channel <channel>",
+    "top <n>",
+    "versus <@user1> <@user2>",
+    "heatmap server/<channel>",
     "trends",
-    "cloud",
-    "sentiment",
+    "cloud server/<channel>",
+    "sentiment <channel>",
     "help",
 ]
 
@@ -164,6 +165,7 @@ def user(server: str, username: str, timeframe: str):
             if time not in [*message_data]:
                 message_data[time] = timeseries.count(time)
         messagesperday = sum([*message_data.values()]) / len([*message_data])
+        plt.figure(figsize=(6, 6))
         plot = sns.barplot(x=[*message_data], y=[*message_data.values()])
         plt.xlabel("Date")
         plt.ylabel("Messages")
@@ -174,6 +176,7 @@ def user(server: str, username: str, timeframe: str):
         figure.savefig(buffer, format="png")
         buffer.seek(0)
         image = discord.File(buffer, filename="plot.png")
+        plt.clf()
         total_messages = sum([*message_data.values()])
         total_voice_time = 0
         most_active_channel = []
@@ -201,6 +204,7 @@ def user(server: str, username: str, timeframe: str):
             if time not in [*message_data]:
                 message_data[time] = timeseries.count(time)
         messagesperweek = sum([*message_data.values()]) / len([*message_data])
+        plt.figure(figsize=(6, 6))
         plot = sns.barplot(x=[*message_data], y=[*message_data.values()])
         plt.xlabel("Week")
         plt.ylabel("Messages")
@@ -211,6 +215,7 @@ def user(server: str, username: str, timeframe: str):
         figure.savefig(buffer, format="png")
         buffer.seek(0)
         image = discord.File(buffer, filename="plot.png")
+        plt.clf()
         total_messages = sum([*message_data.values()])
         total_voice_time = 0
         most_active_channel = []
@@ -242,6 +247,7 @@ def user(server: str, username: str, timeframe: str):
             if time not in [*message_data]:
                 message_data[time] = timeseries.count(time)
         messagesperhour = sum([*message_data.values()]) / len([*message_data])
+        plt.figure(figsize=(6, 6))
         plot = sns.barplot(x=[*message_data], y=[*message_data.values()])
         plt.xlabel("Hour")
         plt.ylabel("Messages")
@@ -252,6 +258,7 @@ def user(server: str, username: str, timeframe: str):
         figure.savefig(buffer, format="png")
         buffer.seek(0)
         image = discord.File(buffer, filename="plot.png")
+        plt.clf()
         total_messages = sum([*message_data.values()])
         total_voice_time = 0
         most_active_channel = []
@@ -500,8 +507,9 @@ def versus(server, user1, user2):
     for time in timeseries2:
         if time not in [*message_data2]:
             message_data2[time] = timeseries2.count(time)
-    plot = sns.scatterplot(x=[*message_data1], y=[*message_data1.values()], label=user1)
-    plot = sns.scatterplot(x=[*message_data2], y=[*message_data2.values()], label=user2)
+    plt.figure(figsize=(6, 6))
+    plot = sns.lineplot(x=[*message_data1], y=[*message_data1.values()], label=user1)
+    plot = sns.lineplot(x=[*message_data2], y=[*message_data2.values()], label=user2)
     plt.xlabel("Date")
     plt.ylabel("Messages")
     plt.title(f"Messages sent by {user1} and {user2}")
@@ -511,6 +519,7 @@ def versus(server, user1, user2):
     figure.savefig(buffer, format="png")
     buffer.seek(0)
     image = discord.File(buffer, filename="plot.png")
+    plt.clf()
     total_messages1 = sum([*message_data1.values()])
     total_messages2 = sum([*message_data2.values()])
     total_voice_time1 = 0
@@ -543,3 +552,72 @@ def versus(server, user1, user2):
     )
     embed.set_image(url="attachment://plot.png")
     return embed, image
+
+
+def top_users(server, n):
+    db = firestore.client()
+    messages = db.collection("messages").where("server", "==", server).get()
+    voice = db.collection("voice").where("server", "==", server).get()
+    users = []
+    for message in messages:
+        message = message.to_dict()
+        users.append(message["author"])
+    user_data = {}
+    for user in users:
+        if user not in [*user_data]:
+            user_data[user] = users.count(user)
+    voice_data = {}
+    for v in voice:
+        v = v.to_dict()
+        if v["username"] not in [*voice_data]:
+            voice_data[v["username"]] = v["total_time"]
+    top_users = sorted(user_data.items(), key=lambda x: x[1], reverse=True)[:n]
+    top_voice = sorted(voice_data.items(), key=lambda x: x[1], reverse=True)[:n]
+    df_messages = pd.DataFrame(top_users, columns=["User", "Messages"])
+    df_voice = pd.DataFrame(top_voice, columns=["User", "Voice Time"])
+    table = pd.plotting.table
+    fig, ax = plt.subplots(2, 1, figsize=(10, 8))
+    ax[0].axis("off")
+    tbl1 = ax[0].table(
+        cellText=df_messages.values,
+        colLabels=df_messages.columns,
+        loc="center",
+        cellLoc="center",
+    )
+    tbl1.auto_set_font_size(False)
+    tbl1.set_fontsize(10)
+    tbl1.scale(1.2, 1.2)
+    for i in range(len(df_messages)):
+        color = "lightgrey" if i % 2 == 0 else "white"
+        for j in range(len(df_messages.columns)):
+            tbl1[(i + 1, j)].set_facecolor(color)
+    for j in range(len(df_messages.columns)):
+        tbl1[(0, j)].set_facecolor("lightblue")
+    ax[0].set_title("Top Users by Messages", fontsize=14, weight="bold")
+
+    ax[1].axis("off")
+    tbl2 = ax[1].table(
+        cellText=df_voice.values,
+        colLabels=df_voice.columns,
+        loc="center",
+        cellLoc="center",
+    )
+    tbl2.auto_set_font_size(False)
+    tbl2.set_fontsize(10)
+    tbl2.scale(1.2, 1.2)
+    for i in range(len(df_voice)):
+        color = "lightgrey" if i % 2 == 0 else "white"
+        for j in range(len(df_voice.columns)):
+            tbl2[(i + 1, j)].set_facecolor(color)
+    for j in range(len(df_voice.columns)):
+        tbl2[(0, j)].set_facecolor("lightblue")
+    ax[1].set_title("Top Users by Voice Time", fontsize=14, weight="bold")
+
+    buff = io.BytesIO()
+    plt.savefig(buff, format="png", bbox_inches="tight")
+    buff.seek(0)
+
+    image = discord.File(buff, filename="top_users.png")
+    plt.clf()
+
+    return image

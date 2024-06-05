@@ -23,6 +23,7 @@ from response import (
     sentiment_analysis,
     generate_heatmap,
     versus,
+    top_users,
 )
 from pytz import timezone
 
@@ -79,6 +80,9 @@ async def send_message(message: Message, user_message: str) -> None:
             response, image = versus(message.guild.name, user1.name, user2.name)
             await message.channel.send(embed=response)
             await message.channel.send(file=image)
+        if user_message == "!top":
+            response = top_users(message.guild.name,5)
+            await message.channel.send(file=response)
         else:
             response = get_response(user_message)
             await message.channel.send(response)
