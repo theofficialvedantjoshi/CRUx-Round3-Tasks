@@ -22,6 +22,7 @@ from response import (
     word_cloud,
     sentiment_analysis,
     generate_heatmap,
+    versus,
 )
 from pytz import timezone
 
@@ -39,6 +40,7 @@ async def send_message(message: Message, user_message: str) -> None:
         print("No message to send")
         return
     try:
+        print(f"User message: {user_message}")
         if user_message == "!overview":
             response = overview(message.guild.name)
             await message.channel.send(embed=response)
@@ -71,6 +73,12 @@ async def send_message(message: Message, user_message: str) -> None:
             tag = user_message.split(" ")[1]
             image = generate_heatmap(message.guild.name, tag)
             await message.channel.send(file=image)
+        if user_message.startswith("!versus"):
+            user1 = await client.fetch_user(int(user_message.split(" ")[1][2:-1]))
+            user2 = await client.fetch_user(int(user_message.split(" ")[2][2:-1]))
+            response, image = versus(message.guild.name, user1.name, user2.name)
+            await message.channel.send(embed=response)
+            await message.channel.send(file=image)
         else:
             response = get_response(user_message)
             await message.channel.send(response)
@@ -100,7 +108,7 @@ async def on_message(message: Message):
     user_message = message.content
     channel = message.channel
     print(f"{username} said: {user_message} in {channel}")
-    time = datetime.now()
+    time = datetime.now(timezone("Asia/Kolkata"))
     messages(
         server=message.guild.name,
         channel=channel.name,
