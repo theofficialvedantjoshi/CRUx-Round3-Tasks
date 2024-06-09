@@ -18,18 +18,24 @@ def set_seed():
         tf.write("Username:[]\n")
         tf.write("Seed:[]")
         tf.flush()
-        subprocess.call(
-            [
-                editor,
-                tf.name,
-            ]
-        )
+        try:
+            subprocess.call(
+                [
+                    editor,
+                    tf.name,
+                ]
+            )
+        except:
+            print("Invalid editor. Please set a valid editor.")
         tf.seek(0)
         # print(tf.readlines())
         lines = tf.readlines()
-        service = lines[1].split(":")[1].strip("\n").strip("[").strip("]")
-        username = lines[2].split(":")[1].strip("\n").strip("[").strip("]")
-        seed = lines[3].split(":")[1].strip("[").strip("]")
+        try:
+            service = lines[1].split(":")[1].strip("\n").strip("[").strip("]")
+            username = lines[2].split(":")[1].strip("\n").strip("[").strip("]")
+            seed = lines[3].split(":")[1].strip("[").strip("]")
+        except:
+            print("Invalid input format. Please fill in the [] fields.")
     os.remove(tf.name)
     return service, username, seed
 

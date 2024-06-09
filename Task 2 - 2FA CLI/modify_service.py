@@ -6,12 +6,15 @@ def modify_service(service_from, service_to, key):
     decrypt_db(key)
     conn = sqlite3.connect("Task 2 - 2FA CLI\data\\totp.db")
     curser = conn.cursor()
-    curser.execute(
-        """
-    UPDATE services SET service = ? WHERE service = ?
-    """,
-        (service_to, service_from),
-    )
+    try:
+        curser.execute(
+            """
+        UPDATE services SET service = ? WHERE service = ?
+        """,
+            (service_to, service_from),
+        )
+    except:
+        print("Invalid service")
     conn.commit()
     conn.close()
     encrypt_db()

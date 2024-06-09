@@ -8,12 +8,15 @@ def remove_service(service, username, key):
     decrypt_db(key)
     conn = sqlite3.connect("Task 2 - 2FA CLI\data\\totp.db")
     curser = conn.cursor()
-    curser.execute(
-        """
-    DELETE FROM services WHERE service = ? AND username = ?
-    """,
-        (service, username),
-    )
+    try:
+        curser.execute(
+            """
+        DELETE FROM services WHERE service = ? AND username = ?
+        """,
+            (service, username),
+        )
+    except:
+        print("Invalid service or username")
     conn.commit()
     conn.close()
     encrypt_db()

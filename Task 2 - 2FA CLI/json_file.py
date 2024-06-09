@@ -40,19 +40,26 @@ def import_db_json(key, file_path):
     decrypt_db(key)
     conn = sqlite3.connect("Task 2 - 2FA CLI\data\\totp.db")
     curser = conn.cursor()
-    curser.execute(
-        """
-INSERT INTO services(service, username, seed) VALUES(?, ?, ?)
-""",
-        (data["service"], data["username"], data["seed"]),
-    )
+    try:
+        curser.execute(
+            """
+    INSERT INTO services(service, username, seed) VALUES(?, ?, ?)
+    """,
+            (data["service"], data["username"], data["seed"]),
+        )
+    except:
+        print("Invalid data or duplicate entry")
     conn.commit()
     conn.close()
     encrypt_db()
 
 
 def import_db_zip(key, password, file_path):
-    pyminizip.uncompress(file_path, password, "Task 2 - 2FA CLI\data", 0)
+    try:
+        pyminizip.uncompress(file_path, password, "Task 2 - 2FA CLI\data", 0)
+    except:
+        print("Invalid password or file")
+        return
     json_files = [
         "Task 2 - 2FA CLI\data\\" + f
         for f in os.listdir("Task 2 - 2FA CLI\data")
@@ -65,12 +72,15 @@ def import_db_zip(key, password, file_path):
         data = json.loads(data)
         conn = sqlite3.connect("Task 2 - 2FA CLI\data\\totp.db")
         curser = conn.cursor()
-        curser.execute(
-            """
-    INSERT INTO services(service, username, seed) VALUES(?, ?, ?)
-    """,
-            (data["service"], data["username"], data["seed"]),
-        )
+        try:
+            curser.execute(
+                """
+        INSERT INTO services(service, username, seed) VALUES(?, ?, ?)
+        """,
+                (data["service"], data["username"], data["seed"]),
+            )
+        except:
+            print("Invalid data or duplicate entry")
         conn.commit()
         conn.close()
         os.remove(file)

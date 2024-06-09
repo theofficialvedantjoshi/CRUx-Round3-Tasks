@@ -16,7 +16,11 @@ def encrypt_db():
 
 
 def decrypt_db(key):
-    fernet = Fernet(key)
+    try:
+        fernet = Fernet(key)
+    except:
+        print("Invalid key")
+        return
     with open("Task 2 - 2FA CLI\data\\totp.db", "rb") as file:
         encrypted_data = file.read()
     decrypted_data = fernet.decrypt(encrypted_data)

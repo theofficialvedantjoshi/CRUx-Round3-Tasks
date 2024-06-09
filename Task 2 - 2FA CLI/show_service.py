@@ -9,12 +9,15 @@ def fetch_seed(service, key):
     decrypt_db(key)
     conn = sqlite3.connect("Task 2 - 2FA CLI\data\\totp.db")
     curser = conn.cursor()
-    curser.execute(
-        """
-    SELECT seed FROM services WHERE service = ?
-    """,
-        (service,),
-    )
+    try:
+        curser.execute(
+            """
+        SELECT seed FROM services WHERE service = ?
+        """,
+            (service,),
+        )
+    except:
+        print("Invalid service")
     seed = curser.fetchone()[0]
     conn.close()
     encrypt_db()
@@ -22,7 +25,10 @@ def fetch_seed(service, key):
 
 
 def show_otp(seed):
-    totp = pyotp.TOTP(seed)
+    try:
+        totp = pyotp.TOTP(seed)
+    except:
+        print("Invalid seed, please remove and re-add the service.")
     return (
         totp.now(),
         totp.interval - datetime.datetime.now().timestamp() % totp.interval,
