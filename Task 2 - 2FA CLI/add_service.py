@@ -1,4 +1,3 @@
-# import totp
 import time
 import os
 import tempfile
