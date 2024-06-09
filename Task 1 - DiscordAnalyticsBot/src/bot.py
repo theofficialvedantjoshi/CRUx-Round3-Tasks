@@ -20,18 +20,18 @@ async def send_message(message: Message, user_message: str) -> None:
         return
     try:
         print(f"User message: {user_message}")
-        if user_message == "!overview":
+        if user_message == "!stat overview":
             response = responses.overview(message.guild.name)
             await message.channel.send(embed=response)
-        if user_message.startswith("!user"):
-            timeframe = user_message.split(" ")[1]
+        if user_message.startswith("!stat user"):
+            timeframe = user_message.split(" ")[2]
             response, image = responses.user(
                 message.guild.name, message.author.name, timeframe
             )
             await message.channel.send(embed=response)
             await message.channel.send(file=image)
-        if user_message.startswith("!channel"):
-            name = user_message.split(" ")[1]
+        if user_message.startswith("!stat channel"):
+            name = user_message.split(" ")[2]
             try:
                 response, image = responses.channel_stats(message.guild.name, name)
                 await message.channel.send(embed=response)
@@ -40,31 +40,36 @@ async def send_message(message: Message, user_message: str) -> None:
             except Exception as e:
                 print(f"Error: {e}")
                 await message.channel.send("Channel not found")
-        if user_message.startswith("!cloud"):
-            tag = user_message.split(" ")[1]
+        if user_message.startswith("!stat cloud"):
+            tag = user_message.split(" ")[2]
             response = responses.word_cloud(message.guild.name, tag)
             await message.channel.send(file=response)
-        if user_message == "!sentiment":
+        if user_message == "!stat sentiment":
             image1, image2 = responses.sentiment_analysis(
                 message.guild.name, message.channel.name
             )
             await message.channel.send(file=image1)
             await message.channel.send(file=image2)
-        if user_message.startswith("!heatmap"):
-            tag = user_message.split(" ")[1]
+        if user_message.startswith("!stat heatmap"):
+            tag = user_message.split(" ")[2]
             image = responses.generate_heatmap(message.guild.name, tag)
             await message.channel.send(file=image)
-        if user_message.startswith("!versus"):
-            user1 = await client.fetch_user(int(user_message.split(" ")[1][2:-1]))
-            user2 = await client.fetch_user(int(user_message.split(" ")[2][2:-1]))
+        if user_message.startswith("!stat versus"):
+            user1 = await client.fetch_user(int(user_message.split(" ")[2][2:-1]))
+            user2 = await client.fetch_user(int(user_message.split(" ")[3][2:-1]))
             response, image = responses.versus(
                 message.guild.name, user1.name, user2.name
             )
             await message.channel.send(embed=response)
             await message.channel.send(file=image)
-        if user_message == "!top":
+        if user_message == "!stat top":
             response = responses.top_users(message.guild.name, 5)
             await message.channel.send(file=response)
+        if user_message == "!stat trends":
+            embed, image1, image2 = responses.get_trends(message.guild.name)
+            await message.channel.send(embed=embed)
+            await message.channel.send(file=image1)
+            await message.channel.send(file=image2)
         else:
             response = responses.get_response(user_message)
             await message.channel.send(response)
@@ -84,6 +89,7 @@ async def on_ready():
                     activity.add_channels(
                         server.name, channel.name, channel.type[0], 0, 0, []
                     )
+    await client.change_presence(activity=discord.Game(name="!stat help"))
 
 
 @client.event

@@ -40,15 +40,15 @@ class Response:
         ]
 
     def get_response(self, message: str) -> str:
-        if message == "!help":
+        if message == "!stat help":
             return (
                 "Commands:\n"
                 + "\n".join([f"{command}" for command in self.commands])
-                + "\n\nFor more information on a command, type `!help <command>`"
+                + "\n\nFor more information on a command, type `!stat help <command>`"
             )
 
-        if message.startswith("!help"):
-            command = message.split(" ")[1]
+        if message.startswith("!stat help"):
+            command = message.split(" ")[2]
             return self.get_help(message, command)
 
     def get_help(self, message: str, command: str) -> str:
@@ -56,54 +56,54 @@ class Response:
             return f"Command {command} not found"
         if command == "overview":
             return (
-                "Overview command: `!overview`\n"
+                "Overview command: `!stat overview`\n"
                 "Server overview which shows total messages sent, number of active users, and other relevant metrics"
             )
         elif command == "user":
             return (
-                "User command: `!user hourly/daily/weekly`\n"
+                "User command: `!stat user hourly/daily/weekly`\n"
                 "User specific stats that shows the number of messages sent, time spent in voice channels, and other relevant metrics for the specified user."
                 " The timeframe can be hourly(for todays day), daily, or weekly."
             )
         elif command == "channel":
             return (
-                "Channel command: `!channel`\n"
+                "Channel command: `!stat channel`\n"
                 "Channel specific stats that shows the most active users in the channel and usage analytics"
             )
         elif command == "top":
             return (
-                "Top command: `!top`\n"
+                "Top command: `!stat top`\n"
                 "List the top 10 users ranked by the number of messages sent and time spent in voice channels."
             )
         elif command == "versus":
             return (
-                "Versus command: `!versus <user1> <user2>`\n"
+                "Versus command: `!stat versus <user1> <user2>`\n"
                 "Compare the number of messages sent and time spent in voice channels between two users."
             )
         elif command == "heatmap":
             return (
-                "Heatmap command: `!heatmap server/<channel>`\n"
+                "Heatmap command: `!stat heatmap server/<channel>`\n"
                 "Generate a heatmap of message activity over the course of a week"
                 " for the entire server or a specific channel."
             )
         elif command == "trends":
             return (
-                "Trends command: `!trends <channel> <n>`\n"
+                "Trends command: `!stat trends <channel> <n>`\n"
                 "trends in server activity, such as increasing or decreasing message frequency over a specific period"
             )
         elif command == "cloud":
             return (
-                "Cloud command: `!cloud server/<channel>`\n"
+                "Cloud command: `!stat cloud server/<channel>`\n"
                 "Perform a content analysis of messages to identify common keywords and topics. Visualise these using a word cloud."
             )
         elif command == "sentiment":
             return (
-                "Sentiment command: `!sentiment <channel>`\n"
+                "Sentiment command: `!stat sentiment <channel>`\n"
                 "Analyse and plot the sentiment of messages over time to observe changes in overall server mood."
             )
         elif command == "help":
             return (
-                "Help command: `!help <command>`\n"
+                "Help command: `!stat help <command>`\n"
                 "This command gives more information on a specific command"
             )
 
@@ -176,6 +176,7 @@ class Response:
                     message_data[time] = timeseries.count(time)
             messagesperday = sum([*message_data.values()]) / len([*message_data])
             plt.figure(figsize=(6, 6))
+            sns.color_palette("mako", as_cmap=True)
             plot = sns.barplot(x=[*message_data], y=[*message_data.values()])
             plt.xlabel("Date")
             plt.ylabel("Messages")
@@ -217,6 +218,7 @@ class Response:
                     message_data[time] = timeseries.count(time)
             messagesperweek = sum([*message_data.values()]) / len([*message_data])
             plt.figure(figsize=(6, 6))
+            sns.color_palette("mako", as_cmap=True)
             plot = sns.barplot(x=[*message_data], y=[*message_data.values()])
             plt.xlabel("Week")
             plt.ylabel("Messages")
@@ -259,6 +261,7 @@ class Response:
                     message_data[time] = timeseries.count(time)
             messagesperhour = sum([*message_data.values()]) / len([*message_data])
             plt.figure(figsize=(6, 6))
+            sns.color_palette("mako", as_cmap=True)
             plot = sns.barplot(x=[*message_data], y=[*message_data.values()])
             plt.xlabel("Hour")
             plt.ylabel("Messages")
@@ -326,6 +329,7 @@ class Response:
             for time in timeseries:
                 if time not in [*message_data]:
                     message_data[time] = timeseries.count(time)
+            sns.color_palette("mako", as_cmap=True)
             plot = sns.scatterplot(x=[*message_data], y=[*message_data.values()])
             plt.xlabel("Date")
             plt.ylabel("Messages")
@@ -428,6 +432,7 @@ class Response:
         image1 = discord.File(buff, filename="sentiment.png")
         plt.clf()
         # line graph
+        sns.color_palette("mako", as_cmap=True)
         plot = sns.lineplot(x=[*sentiment_score], y=[*sentiment_score.values()])
         plot.set(xlabel="Hour", ylabel="Sentiment Score")
         plot.set_title("Sentiment Score over the course of the day")
@@ -456,6 +461,7 @@ class Response:
             hours.append(message["timestamp"].hour)
         df = pd.DataFrame({"date": dates, "hour": hours})
         df["date"] = df["date"].apply(lambda x: x.strftime(r"%Y-%m-%d"))
+        sns.color_palette("mako", as_cmap=True)
         sns.heatmap(df.groupby(["date", "hour"]).size().unstack(), cmap="coolwarm")
         plt.title("Message Heatmap")
         plt.xlabel("Hour")
@@ -516,6 +522,7 @@ class Response:
             if time not in [*message_data2]:
                 message_data2[time] = timeseries2.count(time)
         plt.figure(figsize=(6, 6))
+        sns.color_palette("mako", as_cmap=True)
         plot = sns.lineplot(
             x=[*message_data1], y=[*message_data1.values()], label=user1
         )
@@ -632,3 +639,75 @@ class Response:
         plt.clf()
 
         return image
+
+    def get_trends(self, server):
+        db = self.db
+        messages = db.collection("messages").where("server", "==", server).get()
+        week = datetime.now(timezone("Asia/Kolkata")).isocalendar()[1]
+        # group messages day wise in a week
+        messages_data = {}
+        for message in messages:
+            message = message.to_dict()
+            if message["timestamp"].isocalendar()[1] == week:
+                if message["timestamp"].date() not in [*messages_data]:
+                    messages_data[message["timestamp"].date()] = 1
+                else:
+                    messages_data[message["timestamp"].date()] += 1
+        max_day = max(messages_data, key=lambda x: messages_data[x])
+        max_day_messages = messages_data[max_day]
+        min_day = min(messages_data, key=lambda x: messages_data[x])
+        min_day_messages = messages_data[min_day]
+        df = pd.DataFrame(messages_data.items(), columns=["Date", "Messages"])
+        df["SMA"] = df["Messages"].rolling(window=3).mean()
+        plt.figure(figsize=(6, 6))
+        sns.color_palette("mako", as_cmap=True)
+        plot = sns.lineplot(x="Date", y="Messages", data=df, label="Messages")
+        plot = sns.lineplot(x="Date", y="SMA", data=df, label="SMA")
+        plt.xlabel("Date")
+        plt.ylabel("Messages")
+        plt.title("Messages sent over the week")
+        plt.xticks(rotation=45)
+        figure = plot.get_figure()
+        buffer = io.BytesIO()
+        figure.savefig(buffer, format="png")
+        buffer.seek(0)
+        image1 = discord.File(buffer, filename="plot.png")
+        plt.clf()
+        current_date = datetime.now(timezone("Asia/Kolkata")).date()
+        messages_data = {}
+        for message in messages:
+            message = message.to_dict()
+            if message["timestamp"].date() == current_date:
+                if message["timestamp"].hour not in [*messages_data]:
+                    messages_data[message["timestamp"].hour] = 1
+                else:
+                    messages_data[message["timestamp"].hour] += 1
+        max_hour = max(messages_data, key=lambda x: messages_data[x])
+        max_hour_messages = messages_data[max_hour]
+        min_hour = min(messages_data, key=lambda x: messages_data[x])
+        min_hour_messages = messages_data[min_hour]
+        df = pd.DataFrame(messages_data.items(), columns=["Hour", "Messages"])
+        df["SMA"] = df["Messages"].rolling(window=3).mean()
+        plt.figure(figsize=(6, 6))
+        sns.color_palette("mako", as_cmap=True)
+        plot = sns.lineplot(x="Hour", y="Messages", data=df, label="Messages")
+        plot = sns.lineplot(x="Hour", y="SMA", data=df, label="SMA")
+        plt.xlabel("Hour")
+        plt.ylabel("Messages")
+        plt.title("Messages sent over the day")
+        plt.xticks(rotation=45)
+        figure = plot.get_figure()
+        buffer = io.BytesIO()
+        figure.savefig(buffer, format="png")
+        buffer.seek(0)
+        image2 = discord.File(buffer, filename="plot.png")
+        plt.clf()
+        embed = discord.Embed(
+            color=discord.Color.blue(),
+            title="Trends",
+            description=f"Most active day: {max_day} with {max_day_messages} messages\n"
+            f"Least active day: {min_day} with {min_day_messages} messages\n"
+            f"Most active hour today: {max_hour} with {max_hour_messages} messages\n"
+            f"Least active hour today: {min_hour} with {min_hour_messages} messages",
+        )
+        return embed, image1, image2
