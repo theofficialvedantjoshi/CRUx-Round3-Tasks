@@ -39,8 +39,6 @@ The Bot has been hosted on a virtual linux server. Use the link to invite the bo
 
 https://discord.com/oauth2/authorize?client_id=1246443201401716848&permissions=17979303652352&integration_type=0&scope=bot
 
-Remember the bot won't instantly show the server stats because it has not recorded any data.
-
 ## Task 2 - CLI TOTP Two Factor Authenticator:
 
 This CLI application helps you manage two-factor authentication (TOTP) codes for various services. It includes functionality to add, remove, modify, and show TOTP codes, as well as to import/export services with encrypted JSON files.
