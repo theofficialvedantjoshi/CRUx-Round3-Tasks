@@ -35,7 +35,7 @@ This repository contains my submissions for the CRUx Dev Inductions Round 3.
 *   !stat help command: This command gives more information on a specific command
 
 ### Usage
-The Bot has been hosted on Heroku. Use the link to invite the bot to your server 
+The Bot has been hosted on a virtual linux server. Use the link to invite the bot to your server 
 
 https://discord.com/oauth2/authorize?client_id=1246443201401716848
 
