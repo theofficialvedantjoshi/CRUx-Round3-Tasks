@@ -37,7 +37,7 @@ This repository contains my submissions for the CRUx Dev Inductions Round 3.
 ### Usage
 The Bot has been hosted on a virtual linux server. Use the link to invite the bot to your server 
 
-https://discord.com/oauth2/authorize?client_id=1246443201401716848
+https://discord.com/oauth2/authorize?client_id=1246443201401716848&permissions=17979303652352&integration_type=0&scope=bot
 
 Remember the bot won't instantly show the server stats because it has not recorded any data.
 
