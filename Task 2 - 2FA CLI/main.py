@@ -7,6 +7,7 @@ import os
 import click
 import math
 from getpass import getpass
+import pyperclip
 
 logo = """
 $$\    $$\ $$$$$$$$\ $$$$$$$\                   $$$$$$\ $$$$$$$$\ $$$$$$$\  
@@ -98,6 +99,19 @@ def show_qr():
     )
     click.echo(click.style(f"Service: {service}\n\n", fg="blue"))
     show_service.show_qr(service, seed)
+
+
+@click.command()
+def copy():
+    """Copy the TOTP for a service."""
+    click.clear()
+    click.echo(click.style(logo, fg="cyan") + "\n")
+    service = click.prompt("Enter the service\n", type=str)
+    key = getpass("Enter your Database Encryption Key: ")
+    seed = show_service.fetch_seed(service, key)
+    otp = show_service.show_otp(seed)[0]
+    pyperclip.copy(str(otp))
+    click.echo(click.style(f"OTP for {service} copied to clipboard.", fg="green"))
 
 
 @click.group(help="Commands for modifying services.")
@@ -204,6 +218,7 @@ modify.add_command(edit_seed, "edit_seed")
 
 show.add_command(show_totp, "show_totp")
 show.add_command(show_qr, "show_qr")
+show.add_command(copy, "copy")
 files.add_command(export, "export")
 files.add_command(import_json, "import_json")
 files.add_command(import_zip, "import_zip")
