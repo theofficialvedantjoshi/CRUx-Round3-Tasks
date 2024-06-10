@@ -22,8 +22,9 @@ class Response:
             "versus <@user1> <@user2>",
             "heatmap server/<channel>",
             "trends",
+            "spikes <timeframe>",
             "cloud server/<channel>",
-            "sentiment <channel>",
+            "sentiment",
             "help",
         ]
         self.commands = [
@@ -34,6 +35,7 @@ class Response:
             "versus",
             "heatmap",
             "trends",
+            "spikes",
             "cloud",
             "sentiment",
             "help",
@@ -91,6 +93,11 @@ class Response:
                 "Trends command: `!stat trends <channel> <n>`\n"
                 "trends in server activity, such as increasing or decreasing message frequency over a specific period"
             )
+        elif command == "spikes":
+            return (
+                "Spikes command: `!stat spikes <daily/hourly>`\n"
+                "Identify spikes in message activity for a specific channel over a specific timeframe"
+            )
         elif command == "cloud":
             return (
                 "Cloud command: `!stat cloud server/<channel>`\n"
@@ -98,8 +105,8 @@ class Response:
             )
         elif command == "sentiment":
             return (
-                "Sentiment command: `!stat sentiment <channel>`\n"
-                "Analyse and plot the sentiment of messages over time to observe changes in overall server mood."
+                "Sentiment command: `!stat sentiment`\n"
+                "Analyse and plot the sentiment of messages in that channel over time to observe changes in overall server mood."
             )
         elif command == "help":
             return (
@@ -711,3 +718,92 @@ class Response:
             f"Least active hour today: {min_hour} with {min_hour_messages} messages",
         )
         return embed, image1, image2
+
+    def get_spikes(self, server, channel, timeframe):
+        db = self.db
+        channels = db.collection("channels").where("server", "==", server).get()
+        text_channels = []
+        voice_channels = []
+        for channel in channels:
+            channel = channel.to_dict()
+            if channel["type"] == "text":
+                text_channels.append(channel["name"])
+        if timeframe == "daily":
+            for channel in text_channels:
+                week = datetime.now(timezone("Asia/Kolkata")).isocalendar()[1]
+                messages = (
+                    db.collection("messages")
+                    .where("server", "==", server)
+                    .where("channel", "==", channel)
+                    .get()
+                )
+                messages_data = {}
+                for message in messages:
+                    message = message.to_dict()
+                    if message["timestamp"].isocalendar()[1] == week:
+                        if message["timestamp"].date() not in [*messages_data]:
+                            messages_data[message["timestamp"].date()] = 1
+                        else:
+                            messages_data[message["timestamp"].date()] += 1
+                print(messages_data)
+                df = pd.DataFrame(messages_data.items(), columns=["Date", "Messages"])
+                average = df["Messages"].mean()
+                std = df["Messages"].std()
+                threshold = 3 * std
+                spikes = df[df["Messages"] > average + threshold]
+                if spikes.empty:
+                    return "No spikes found"
+                plt.figure(figsize=(6, 6))
+                sns.color_palette("mako", as_cmap=True)
+                plot = sns.lineplot(x="Date", y="Messages", data=df, label="Messages")
+                plot = sns.scatterplot(x="Date", y="Messages", data=spikes, color="red")
+                plt.xlabel("Date")
+                plt.ylabel("Messages")
+                plt.title(f"Message spikes in {channel}")
+                plt.xticks(rotation=45)
+                figure = plot.get_figure()
+                buffer = io.BytesIO()
+                figure.savefig(buffer, format="png")
+                buffer.seek(0)
+                image = discord.File(buffer, filename="plot.png")
+                plt.clf()
+                return image
+        if timeframe == "hourly":
+            today = datetime.now(timezone("Asia/Kolkata")).date()
+            for channel in text_channels:
+                messages = (
+                    db.collection("messages")
+                    .where("server", "==", server)
+                    .where("channel", "==", channel)
+                    .get()
+                )
+                messages_data = {}
+                for message in messages:
+                    message = message.to_dict()
+                    if message["timestamp"].date() == today:
+                        if message["timestamp"].hour not in [*messages_data]:
+                            messages_data[message["timestamp"].hour] = 1
+                        else:
+                            messages_data[message["timestamp"].hour] += 1
+                df = pd.DataFrame(messages_data.items(), columns=["Hour", "Messages"])
+                average = df["Messages"].mean()
+                std = df["Messages"].std()
+                threshold = 3 * std
+                spikes = df[df["Messages"] > average + threshold]
+                if spikes.empty:
+                    return "No spikes found"
+                plt.figure(figsize=(6, 6))
+                sns.color_palette("mako", as_cmap=True)
+                plot = sns.lineplot(x="Hour", y="Messages", data=df, label="Messages")
+                plot = sns.scatterplot(x="Hour", y="Messages", data=spikes, color="red")
+                plt.xlabel("Hour")
+                plt.ylabel("Messages")
+                plt.title(f"Message spikes in {channel}")
+                plt.xticks(rotation=45)
+                figure = plot.get_figure()
+                buffer = io.BytesIO()
+                figure.savefig(buffer, format="png")
+                buffer.seek(0)
+                image = discord.File(buffer, filename="plot.png")
+                plt.clf()
+                return image

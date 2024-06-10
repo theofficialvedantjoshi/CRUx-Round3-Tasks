@@ -70,6 +70,15 @@ async def send_message(message: Message, user_message: str) -> None:
             await message.channel.send(embed=embed)
             await message.channel.send(file=image1)
             await message.channel.send(file=image2)
+        if user_message.startswith("!stat spikes"):
+            timeframe = user_message.split(" ")[2]
+            response = responses.get_spikes(
+                message.guild.name, message.channel.name, timeframe
+            )
+            if type(response) == str:
+                await message.channel.send("Not enough data to determine spikes")
+            else:
+                await message.channel.send(file=response)
         else:
             response = responses.get_response(user_message)
             await message.channel.send(response)
