@@ -39,6 +39,9 @@ The Bot has been hosted on a virtual linux server. Use the link to invite the bo
 
 https://discord.com/oauth2/authorize?client_id=1246443201401716848&permissions=17979303652352&integration_type=0&scope=bot
 
+
+**THE ABOVE APP USES A FIRESTORE DATABASE WHICH HAS RATE LIMITS OF 50K READS AND 20K WRITES PER DAY. THIS CAN CAUSE THE BOT TO STOP RESPONDING OR NOT FUNCTIONING PROPERLY**
+
 ## Task 2 - CLI TOTP Two Factor Authenticator:
 
 This CLI application helps you manage two-factor authentication (TOTP) codes for various services. It includes functionality to add, remove, modify, and show TOTP codes, as well as to import/export services with encrypted JSON files.
