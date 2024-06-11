@@ -69,7 +69,7 @@ class Response:
             )
         elif command == "channel":
             return (
-                "Channel command: `!stat channel`\n"
+                "Channel command: `!stat channel <channelname>`\n"
                 "Channel specific stats that shows the most active users in the channel and usage analytics"
             )
         elif command == "top":
@@ -121,6 +121,10 @@ class Response:
         total_voice_time = 0
         active_user_text = ""
         active_user_voice = ""
+        active_users_text = {}
+        active_users_voice = {}
+        for active_user in channels[0].to_dict()["active_users"]:
+            active_users_text[active_user["username"]] = active_user["count"]
         for channel in channels:
             channel = channel.to_dict()
             total_messages += channel["total_messages"]
@@ -128,13 +132,19 @@ class Response:
 
             if "active_users" in channel:
                 if channel["type"] == "text":
-                    active_users = channel["active_users"]
-                    active_user = max(active_users, key=lambda x: x["count"])
-                    active_user_text = active_user["username"]
+                    for user in channel["active_users"]:
+                        if user["username"] not in active_users_text:
+                            active_users_text[user["username"]] = user["count"]
+                        else:
+                            active_users_text[user["username"]] += user["count"]
                 else:
-                    active_users = channel["active_users"]
-                    active_user = max(active_users, key=lambda x: x["total_time"])
-                    active_user_voice = active_user["username"]
+                    for user in channel["active_users"]:
+                        if user["username"] not in active_users_voice:
+                            active_users_voice[user["username"]] = user["total_time"]
+                        else:
+                            active_users_voice[user["username"]] += user["total_time"]
+        active_user_text = max(active_users_text, key=lambda x: active_users_text[x])
+        active_user_voice = max(active_users_voice, key=lambda x: active_users_voice[x])
         messages = db.collection("messages").where("server", "==", server).get()
         timeseries = []
         for message in messages:
@@ -596,8 +606,11 @@ class Response:
             v = v.to_dict()
             if v["username"] not in [*voice_data]:
                 voice_data[v["username"]] = v["total_time"]
-        top_users = sorted(user_data.items(), key=lambda x: x[1], reverse=True)[:n]
-        top_voice = sorted(voice_data.items(), key=lambda x: x[1], reverse=True)[:n]
+        if not voice_data:
+            top_voice = [{"User": "No data", "Voice Time": 0}]
+        else:
+            top_voice = sorted(voice_data.items(), key=lambda x: x[1], reverse=True)
+        top_users = sorted(user_data.items(), key=lambda x: x[1], reverse=True)
         df_messages = pd.DataFrame(top_users, columns=["User", "Messages"])
         df_voice = pd.DataFrame(top_voice, columns=["User", "Voice Time"])
         table = pd.plotting.table

@@ -89,21 +89,38 @@ async def send_message(message: Message, user_message: str) -> None:
 @client.event
 async def on_ready():
     print(f"{client.user} is now running")
-    for server in client.guilds:
-        print(f"Connected to server: {server.name}")
-        for channel in server.channels:
-            print(f"Connected to channel: {channel.name}")
-            if not activity.get_channels(server.name, channel.name):
-                if channel.type[0] != "category":
-                    activity.add_channels(
-                        server.name, channel.name, channel.type[0], 0, 0, []
-                    )
+    await client.change_presence(activity=discord.Game(name="!stat help"))
+
+
+@client.event
+async def on_guild_join(guild):
+    for channel in guild.channels:
+        if not activity.get_channels(guild.name, channel.name):
+            if channel.type[0] != "category":
+                activity.add_channels(
+                    guild.name, channel.name, channel.type[0], 0, 0, []
+                )
+                if channel.type[0] == "text":
+                    messages = channel.history(limit=None)
+                    message_timezone = timezone("Asia/Kolkata")
+                    async for message in messages:
+                        if message.author.bot:
+                            continue
+                        activity.messages(
+                            server=guild.name,
+                            channel=channel.name,
+                            content=message.content,
+                            author=message.author.name,
+                            timestamp=message.created_at.astimezone(message_timezone),
+                        )
+                activity.update_channels(guild.name, channel.name)
+    print(f"Connected to server: {guild.name}")
     await client.change_presence(activity=discord.Game(name="!stat help"))
 
 
 @client.event
 async def on_message(message: Message):
-    if message.author == client.user:
+    if message.author == client.user or message.author.bot:
         return
     username = message.author.name
     user_message = message.content
