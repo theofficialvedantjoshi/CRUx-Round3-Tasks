@@ -6,7 +6,7 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 import io
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from wordcloud import WordCloud, STOPWORDS
 from pytz import timezone
 
@@ -17,13 +17,13 @@ class Response:
         self.commands_help = [
             "overview",
             "user <hourly/daily/weekly>",
-            "channel <channel>",
+            "channel <channelname>",
             "top <n>",
             "versus <@user1> <@user2>",
-            "heatmap server/<channel>",
+            "heatmap server/<channelname> <n>",
             "trends",
             "spikes <timeframe>",
-            "cloud server/<channel>",
+            "cloud server/<channelname>",
             "sentiment",
             "help",
         ]
@@ -84,13 +84,12 @@ class Response:
             )
         elif command == "heatmap":
             return (
-                "Heatmap command: `!stat heatmap server/<channel>`\n"
-                "Generate a heatmap of message activity over the course of a week"
-                " for the entire server or a specific channel."
+                "Heatmap command: `!stat heatmap server/<channelname> <n>`\n"
+                "Generate a heatmap of message activity over the course of the last n days for the entire server or a specific channel."
             )
         elif command == "trends":
             return (
-                "Trends command: `!stat trends <channel> <n>`\n"
+                "Trends command: `!stat trends`\n"
                 "trends in server activity, such as increasing or decreasing message frequency over a specific period"
             )
         elif command == "spikes":
@@ -100,7 +99,7 @@ class Response:
             )
         elif command == "cloud":
             return (
-                "Cloud command: `!stat cloud server/<channel>`\n"
+                "Cloud command: `!stat cloud server/<channelname>`\n"
                 "Perform a content analysis of messages to identify common keywords and topics. Visualise these using a word cloud."
             )
         elif command == "sentiment":
@@ -113,6 +112,14 @@ class Response:
                 "Help command: `!stat help <command>`\n"
                 "This command gives more information on a specific command"
             )
+
+    def hour_to_time(self, hour):
+        if hour < 12:
+            return f"{hour} AM"
+        elif hour == 12:
+            return f"{hour} PM"
+        else:
+            return f"{hour-12} PM"
 
     def overview(self, server: str):
         db = self.db
@@ -186,7 +193,11 @@ class Response:
             channels.append(message["channel"])
             timeseries.append(message["timestamp"])
         if timeframe == "daily":
-            timeseries = [time.date() for time in timeseries]
+            date = datetime.now(timezone("Asia/Kolkata")).date()
+            last_week = date - timedelta(days=7)
+            timeseries = [
+                time.date() for time in timeseries if time.date() >= last_week
+            ]
             message_data = {}
             for time in timeseries:
                 if time not in [*message_data]:
@@ -201,7 +212,7 @@ class Response:
             plt.xticks(rotation=45)
             figure = plot.get_figure()
             buffer = io.BytesIO()
-            figure.savefig(buffer, format="png")
+            figure.savefig(buffer, bbox_inches="tight", format="png")
             buffer.seek(0)
             image = discord.File(buffer, filename="plot.png")
             plt.clf()
@@ -233,6 +244,9 @@ class Response:
             for time in timeseries:
                 if time not in [*message_data]:
                     message_data[time] = timeseries.count(time)
+            message_data = dict(
+                sorted(message_data.items(), key=lambda x: int(x[0].split()[1]))
+            )
             messagesperweek = sum([*message_data.values()]) / len([*message_data])
             plt.figure(figsize=(6, 6))
             sns.color_palette("mako", as_cmap=True)
@@ -243,7 +257,7 @@ class Response:
             plt.xticks(rotation=45)
             figure = plot.get_figure()
             buffer = io.BytesIO()
-            figure.savefig(buffer, format="png")
+            figure.savefig(buffer, bbox_inches="tight", format="png")
             buffer.seek(0)
             image = discord.File(buffer, filename="plot.png")
             plt.clf()
@@ -286,7 +300,7 @@ class Response:
             plt.xticks(rotation=45)
             figure = plot.get_figure()
             buffer = io.BytesIO()
-            figure.savefig(buffer, format="png")
+            figure.savefig(buffer, bbox_inches="tight", format="png")
             buffer.seek(0)
             image = discord.File(buffer, filename="plot.png")
             plt.clf()
@@ -354,7 +368,7 @@ class Response:
             plt.xticks(rotation=45)
             figure = plot.get_figure()
             buffer = io.BytesIO()
-            figure.savefig(buffer, format="png")
+            figure.savefig(buffer, bbox_inches="tight", format="png")
             buffer.seek(0)
             image = discord.File(buffer, filename="plot.png")
             embed = discord.Embed(
@@ -412,7 +426,7 @@ class Response:
         plt.axis("off")
         plt.tight_layout(pad=0)
         buff = io.BytesIO()
-        plt.savefig(buff, format="png")
+        plt.savefig(buff, bbox_inches="tight", format="png")
         buff.seek(0)
         image = discord.File(buff, filename="wordcloud.png")
         return image
@@ -435,7 +449,9 @@ class Response:
                 message["timestamp"].date()
                 == datetime.now(timezone("Asia/Kolkata")).date()
             ):
-                sentiment_score[message["timestamp"].hour] += message["sentiment_score"]
+                sentiment_score[
+                    self.hour_to_time(message["timestamp"].hour)
+                ] += message["sentiment_score"]
         # pie chart
         labels = sentiments.keys()
         sizes = sentiments.values()
@@ -444,7 +460,7 @@ class Response:
         ax1.title.set_text("Sentiment Analysis of all messages")
         ax1.axis("equal")
         buff = io.BytesIO()
-        plt.savefig(buff, format="png")
+        plt.savefig(buff, bbox_inches="tight", format="png")
         buff.seek(0)
         image1 = discord.File(buff, filename="sentiment.png")
         plt.clf()
@@ -454,12 +470,12 @@ class Response:
         plot.set(xlabel="Hour", ylabel="Sentiment Score")
         plot.set_title("Sentiment Score over the course of the day")
         buff = io.BytesIO()
-        plot.get_figure().savefig(buff, format="png")
+        plot.get_figure().savefig(buff, bbox_inches="tight", format="png")
         buff.seek(0)
         image2 = discord.File(buff, filename="sentiment_score.png")
         return image1, image2
 
-    def generate_heatmap(self, server, tag):
+    def generate_heatmap(self, server, tag, n):
         db = self.db
         if tag == "server":
             messages = db.collection("messages").where("server", "==", server).get()
@@ -472,10 +488,13 @@ class Response:
             )
         dates = []
         hours = []
+        date = datetime.now(timezone("Asia/Kolkata")).date()
+        last_date = date - timedelta(days=n)
         for message in messages:
             message = message.to_dict()
-            dates.append(message["timestamp"].date())
-            hours.append(message["timestamp"].hour)
+            if message["timestamp"].date() >= last_date:
+                dates.append(message["timestamp"].date())
+                hours.append(self.hour_to_time(message["timestamp"].hour))
         df = pd.DataFrame({"date": dates, "hour": hours})
         df["date"] = df["date"].apply(lambda x: x.strftime(r"%Y-%m-%d"))
         sns.color_palette("mako", as_cmap=True)
@@ -484,7 +503,7 @@ class Response:
         plt.xlabel("Hour")
         plt.ylabel("Date")
         buff = io.BytesIO()
-        plt.savefig(buff, format="png")
+        plt.savefig(buff, bbox_inches="tight", format="png")
         buff.seek(0)
         image = discord.File(buff, filename="heatmap.png")
         return image
@@ -552,7 +571,7 @@ class Response:
         plt.xticks(rotation=45)
         figure = plot.get_figure()
         buffer = io.BytesIO()
-        figure.savefig(buffer, format="png")
+        figure.savefig(buffer, bbox_inches="tight", format="png")
         buffer.seek(0)
         image = discord.File(buffer, filename="plot.png")
         plt.clf()
@@ -652,7 +671,7 @@ class Response:
         ax[1].set_title("Top Users by Voice Time", fontsize=14, weight="bold")
 
         buff = io.BytesIO()
-        plt.savefig(buff, format="png", bbox_inches="tight")
+        plt.savefig(buff, bbox_inches="tight", format="png")
         buff.seek(0)
 
         image = discord.File(buff, filename="top_users.png")
@@ -663,12 +682,13 @@ class Response:
     def get_trends(self, server):
         db = self.db
         messages = db.collection("messages").where("server", "==", server).get()
-        week = datetime.now(timezone("Asia/Kolkata")).isocalendar()[1]
+        date = datetime.now(timezone("Asia/Kolkata")).date()
+        last_week = date - timedelta(days=7)
         # group messages day wise in a week
         messages_data = {}
         for message in messages:
             message = message.to_dict()
-            if message["timestamp"].isocalendar()[1] == week:
+            if message["timestamp"].date() >= last_week:
                 if message["timestamp"].date() not in [*messages_data]:
                     messages_data[message["timestamp"].date()] = 1
                 else:
@@ -689,7 +709,7 @@ class Response:
         plt.xticks(rotation=45)
         figure = plot.get_figure()
         buffer = io.BytesIO()
-        figure.savefig(buffer, format="png")
+        figure.savefig(buffer, bbox_inches="tight", format="png")
         buffer.seek(0)
         image1 = discord.File(buffer, filename="plot.png")
         plt.clf()
@@ -698,10 +718,10 @@ class Response:
         for message in messages:
             message = message.to_dict()
             if message["timestamp"].date() == current_date:
-                if message["timestamp"].hour not in [*messages_data]:
-                    messages_data[message["timestamp"].hour] = 1
+                if self.hour_to_time(message["timestamp"].hour) not in [*messages_data]:
+                    messages_data[self.hour_to_time(message["timestamp"].hour)] = 1
                 else:
-                    messages_data[message["timestamp"].hour] += 1
+                    messages_data[self.hour_to_time(message["timestamp"].hour)] += 1
         max_hour = max(messages_data, key=lambda x: messages_data[x])
         max_hour_messages = messages_data[max_hour]
         min_hour = min(messages_data, key=lambda x: messages_data[x])
@@ -718,7 +738,7 @@ class Response:
         plt.xticks(rotation=45)
         figure = plot.get_figure()
         buffer = io.BytesIO()
-        figure.savefig(buffer, format="png")
+        figure.savefig(buffer, bbox_inches="tight", format="png")
         buffer.seek(0)
         image2 = discord.File(buffer, filename="plot.png")
         plt.clf()
@@ -743,7 +763,8 @@ class Response:
                 text_channels.append(channel["name"])
         if timeframe == "daily":
             for channel in text_channels:
-                week = datetime.now(timezone("Asia/Kolkata")).isocalendar()[1]
+                date = datetime.now(timezone("Asia/Kolkata")).date()
+                last_week = date - timedelta(days=7)
                 messages = (
                     db.collection("messages")
                     .where("server", "==", server)
@@ -753,17 +774,18 @@ class Response:
                 messages_data = {}
                 for message in messages:
                     message = message.to_dict()
-                    if message["timestamp"].isocalendar()[1] == week:
+                    if message["timestamp"].date() >= last_week:
                         if message["timestamp"].date() not in [*messages_data]:
                             messages_data[message["timestamp"].date()] = 1
                         else:
                             messages_data[message["timestamp"].date()] += 1
                 print(messages_data)
                 df = pd.DataFrame(messages_data.items(), columns=["Date", "Messages"])
+                df["Date"] = df["Date"].apply(lambda x: x.strftime(r"%Y-%m-%d"))
                 average = df["Messages"].mean()
                 std = df["Messages"].std()
-                threshold = 3 * std
-                spikes = df[df["Messages"] > average + threshold]
+                threshold = 2 * std
+                spikes = df[df["Messages"] > threshold]
                 if spikes.empty:
                     return "No spikes found"
                 plt.figure(figsize=(6, 6))
@@ -776,7 +798,7 @@ class Response:
                 plt.xticks(rotation=45)
                 figure = plot.get_figure()
                 buffer = io.BytesIO()
-                figure.savefig(buffer, format="png")
+                figure.savefig(buffer, bbox_inches="tight", format="png")
                 buffer.seek(0)
                 image = discord.File(buffer, filename="plot.png")
                 plt.clf()
@@ -794,10 +816,16 @@ class Response:
                 for message in messages:
                     message = message.to_dict()
                     if message["timestamp"].date() == today:
-                        if message["timestamp"].hour not in [*messages_data]:
-                            messages_data[message["timestamp"].hour] = 1
+                        if self.hour_to_time(message["timestamp"].hour) not in [
+                            *messages_data
+                        ]:
+                            messages_data[
+                                self.hour_to_time(message["timestamp"].hour)
+                            ] = 1
                         else:
-                            messages_data[message["timestamp"].hour] += 1
+                            messages_data[
+                                self.hour_to_time(message["timestamp"].hour)
+                            ] += 1
                 df = pd.DataFrame(messages_data.items(), columns=["Hour", "Messages"])
                 average = df["Messages"].mean()
                 std = df["Messages"].std()
@@ -815,7 +843,7 @@ class Response:
                 plt.xticks(rotation=45)
                 figure = plot.get_figure()
                 buffer = io.BytesIO()
-                figure.savefig(buffer, format="png")
+                figure.savefig(buffer, bbox_inches="tight", format="png")
                 buffer.seek(0)
                 image = discord.File(buffer, filename="plot.png")
                 plt.clf()
