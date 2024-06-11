@@ -191,3 +191,16 @@ class Activity:
         )
         for message in messages:
             db.collection("messages").document(message.id).delete()
+
+    def edit_message(self, server, channel, before, after, author):
+        db = self.db
+        messages = (
+            db.collection("messages")
+            .where("server", "==", server)
+            .where("channel", "==", channel)
+            .where("content", "==", before)
+            .where("author", "==", author)
+            .get()
+        )
+        for message in messages:
+            db.collection("messages").document(message.id).update({"content": after})

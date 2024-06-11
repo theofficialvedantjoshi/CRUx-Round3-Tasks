@@ -186,5 +186,17 @@ async def on_message_delete(message):
     )
 
 
+@client.event
+async def on_message_edit(before, after):
+    print(f"Message {before.content} edited to {after.content}")
+    activity.edit_message(
+        before.guild.name,
+        before.channel.name,
+        before.content,
+        after.content,
+        before.author.name,
+    )
+
+
 def bot() -> None:
     client.run(TOKEN)

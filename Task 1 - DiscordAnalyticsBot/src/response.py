@@ -40,6 +40,7 @@ class Response:
             "sentiment",
             "help",
         ]
+        self.timezone_region = timezone("Asia/Kolkata")
 
     def get_response(self, message: str) -> str:
         if message == "!stat help":
@@ -156,6 +157,7 @@ class Response:
         timeseries = []
         for message in messages:
             message = message.to_dict()
+            message["timestamp"] = message["timestamp"].astimezone(self.timezone_region)
             timeseries.append(message["timestamp"])
         avg_messages = total_messages / len(
             list(set([time.date() for time in timeseries]))
@@ -191,7 +193,7 @@ class Response:
         for message in messages:
             message = message.to_dict()
             channels.append(message["channel"])
-            timeseries.append(message["timestamp"])
+            timeseries.append(message["timestamp"].astimezone(self.timezone_region))
         if timeframe == "daily":
             date = datetime.now(timezone("Asia/Kolkata")).date()
             last_week = date - timedelta(days=7)
@@ -351,7 +353,7 @@ class Response:
             timeseries = []
             for message in messages:
                 message = message.to_dict()
-                timeseries.append(message["timestamp"])
+                timeseries.append(message["timestamp"].astimezone(self.timezone_region))
             avg_messages = total_messages / len(
                 list(set([time.date() for time in timeseries]))
             )
@@ -440,11 +442,12 @@ class Response:
             .get()
         )
         sentiments = {"positive": 0, "negative": 0, "neutral": 0}
-        hours = [x for x in range(24)]
+        hours = [self.hour_to_time(x) for x in range(24)]
         sentiment_score = {hour: 0 for hour in hours}
         for message in messages:
             message = message.to_dict()
             sentiments[message["sentiment"]] += 1
+            message["timestamp"] = message["timestamp"].astimezone(self.timezone_region)
             if (
                 message["timestamp"].date()
                 == datetime.now(timezone("Asia/Kolkata")).date()
@@ -468,6 +471,7 @@ class Response:
         sns.color_palette("mako", as_cmap=True)
         plot = sns.lineplot(x=[*sentiment_score], y=[*sentiment_score.values()])
         plot.set(xlabel="Hour", ylabel="Sentiment Score")
+        plot.set_xticklabels(labels=hours, rotation=45)
         plot.set_title("Sentiment Score over the course of the day")
         buff = io.BytesIO()
         plot.get_figure().savefig(buff, bbox_inches="tight", format="png")
@@ -492,6 +496,7 @@ class Response:
         last_date = date - timedelta(days=n)
         for message in messages:
             message = message.to_dict()
+            message["timestamp"] = message["timestamp"].astimezone(self.timezone_region)
             if message["timestamp"].date() >= last_date:
                 dates.append(message["timestamp"].date())
                 hours.append(self.hour_to_time(message["timestamp"].hour))
@@ -540,13 +545,13 @@ class Response:
         for message in messages1:
             message = message.to_dict()
             channels1.append(message["channel"])
-            timeseries1.append(message["timestamp"])
+            timeseries1.append(message["timestamp"].astimezone(self.timezone_region))
         channels2 = []
         timeseries2 = []
         for message in messages2:
             message = message.to_dict()
             channels2.append(message["channel"])
-            timeseries2.append(message["timestamp"])
+            timeseries2.append(message["timestamp"].astimezone(self.timezone_region))
         message_data1 = {}
         timeseries1 = [time.date() for time in timeseries1]
         for time in timeseries1:
@@ -688,6 +693,7 @@ class Response:
         messages_data = {}
         for message in messages:
             message = message.to_dict()
+            message["timestamp"] = message["timestamp"].astimezone(self.timezone_region)
             if message["timestamp"].date() >= last_week:
                 if message["timestamp"].date() not in [*messages_data]:
                     messages_data[message["timestamp"].date()] = 1
@@ -698,7 +704,8 @@ class Response:
         min_day = min(messages_data, key=lambda x: messages_data[x])
         min_day_messages = messages_data[min_day]
         df = pd.DataFrame(messages_data.items(), columns=["Date", "Messages"])
-        df["SMA"] = df["Messages"].rolling(window=3).mean()
+        df["Date"] = df["Date"].apply(lambda x: x.strftime(r"%Y-%m-%d"))
+        df["SMA"] = df["Messages"].rolling(window=2).mean()
         plt.figure(figsize=(6, 6))
         sns.color_palette("mako", as_cmap=True)
         plot = sns.lineplot(x="Date", y="Messages", data=df, label="Messages")
@@ -713,11 +720,14 @@ class Response:
         buffer.seek(0)
         image1 = discord.File(buffer, filename="plot.png")
         plt.clf()
-        current_date = datetime.now(timezone("Asia/Kolkata")).date()
+        current_date = datetime.now().date()
+        print
         messages_data = {}
         for message in messages:
             message = message.to_dict()
+            message["timestamp"] = message["timestamp"].astimezone(self.timezone_region)
             if message["timestamp"].date() == current_date:
+                print(message["timestamp"].hour)
                 if self.hour_to_time(message["timestamp"].hour) not in [*messages_data]:
                     messages_data[self.hour_to_time(message["timestamp"].hour)] = 1
                 else:
@@ -774,6 +784,9 @@ class Response:
                 messages_data = {}
                 for message in messages:
                     message = message.to_dict()
+                    message["timestamp"] = message["timestamp"].astimezone(
+                        self.timezone_region
+                    )
                     if message["timestamp"].date() >= last_week:
                         if message["timestamp"].date() not in [*messages_data]:
                             messages_data[message["timestamp"].date()] = 1
@@ -815,6 +828,9 @@ class Response:
                 messages_data = {}
                 for message in messages:
                     message = message.to_dict()
+                    message["timestamp"] = message["timestamp"].astimezone(
+                        self.timezone_region
+                    )
                     if message["timestamp"].date() == today:
                         if self.hour_to_time(message["timestamp"].hour) not in [
                             *messages_data
